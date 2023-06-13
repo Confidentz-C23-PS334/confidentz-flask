@@ -27,21 +27,28 @@ def detect():
     filename = str(time.time()) + '-' + secure_filename(file.filename)
     filePath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filePath)
-
-    img = tf.keras.utils.load_img(filePath, target_size=(224, 224))
+    
+    img = tf.keras.utils.load_img(filePath, target_size=(160, 160))
     img_array = tf.keras.utils.img_to_array(img)
-    img_array /= 255
     img_array = np.expand_dims(img_array, axis=0)
     images = np.vstack([img_array])
+    print(img_array.shape)
 
     prediction = model.predict(images, batch_size=10)
+    print(prediction[0])
 
-    score = prediction[0]
+    class_names = ['No Caries', 'Caries']
+    score = tf.nn.softmax(prediction[0])
     print(
-        "Caries detected with a {:.2f} percent confidence."
-        .format(100 * np.max(score))
+        "{} detected with a {:.2f} percent confidence.\n"
+        .format(class_names[np.argmax(score)], 100 * np.max(score))+
+        "{} detected with a {:.2f} percent confidence."
+        .format(class_names[np.argmin(score)], 100 * np.min(score))
     )
 
     os.remove(filePath)
 
-    return { "msg": "idk", "carries_confidence": str(100 * np.max(score)) }
+    results = {}
+    results[class_names[np.argmax(score)]] = 100 * np.max(score)
+    results[class_names[np.argmin(score)]] = 100 * np.min(score)
+    return results
